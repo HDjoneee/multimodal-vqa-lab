@@ -1,6 +1,9 @@
 data/raw/
+data/archive/
 data/images/
 data/manifest.json
+data/manifest_top1000.json
+data/manifest_top1000_dev.json
 results/features_*.pt
 results/finetuned_layers.pt
 vendor/python/

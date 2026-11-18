@@ -6,13 +6,14 @@ after the deterministic manifest has been built.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import urllib.request
 import zipfile
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 VENDOR = ROOT / "vendor"
 VQA_ROOT = "https://cvmlp.s3.amazonaws.com/vqa/mscoco/vqa"
@@ -41,9 +42,11 @@ def download(url: str, target: Path) -> None:
     print("Saved:", target.name, flush=True)
 
 
-def main() -> None:
+def main(annotations_only: bool = False) -> None:
     for name in VQA_NAMES:
         download(f"{VQA_ROOT}/{name}", RAW / name)
+    if annotations_only:
+        return
     weight = RAW / "ViT-B-32.pt"
     download(CLIP_URL, weight)
     digest = hashlib.sha256(weight.read_bytes()).hexdigest()
@@ -59,4 +62,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--annotations-only", action="store_true",
+                        help="Download the four VQA archives without CLIP")
+    main(parser.parse_args().annotations_only)

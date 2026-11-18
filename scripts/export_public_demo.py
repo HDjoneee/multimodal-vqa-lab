@@ -11,8 +11,9 @@ import json
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
+DEMO = ROOT / "demo"
 FAMILIES = ("yes/no", "count", "color", "animal")
 
 
@@ -30,11 +31,11 @@ def main() -> None:
         row["image_data"] = f"http://images.cocodataset.org/{row['image']}"
     data = {"samples": gallery, "summary": summary}
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    template = (ROOT / "demo_template.html").read_text(encoding="utf-8")
+    template = (DEMO / "demo_template.html").read_text(encoding="utf-8")
     html = template.replace("__VQA_DATA__", payload)
     assert "data:image/jpeg;base64," not in html
-    (ROOT / "demo.html").write_text(html, encoding="utf-8")
-    print(f"Exported public demo.html with {len(gallery)} test cases and external COCO image URLs")
+    (DEMO / "demo.html").write_text(html, encoding="utf-8")
+    print(f"Exported demo/demo.html with {len(gallery)} test cases and external COCO image URLs")
 
 
 if __name__ == "__main__":

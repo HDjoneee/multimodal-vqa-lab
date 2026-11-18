@@ -36,11 +36,14 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import DataLoader, Dataset, TensorDataset
 
-ROOT = Path.cwd()
-if not (ROOT / "prepare_data.py").is_file() and (ROOT / "vqa_project" / "prepare_data.py").is_file():
-    ROOT = ROOT / "vqa_project"
+cwd = Path.cwd()
+ROOT = next((path for path in (cwd, *cwd.parents, cwd / "vqa_project")
+             if (path / "scripts" / "prepare_data.py").is_file()), None)
+if ROOT is None:
+    raise FileNotFoundError("Open the notebook from the VQA repository")
 os.chdir(ROOT)
-sys.path[:0] = [str(ROOT / "vendor" / "python"), str(ROOT / "vendor" / "CLIP-main")]
+sys.path[:0] = [str(ROOT / "vendor" / "python"), str(ROOT / "vendor" / "CLIP-main"),
+                str(ROOT / "scripts")]
 import clip
 from prepare_data import build_manifest, MANIFEST, IMAGES, FAMILIES, VOCAB_SIZES
 
@@ -101,7 +104,7 @@ missing_images = [r["image"] for r in rows if not (IMAGES / r["image"]).is_file(
 if missing_images:
     raise FileNotFoundError(
         f"Missing {len(set(missing_images))} COCO images. "
-        "Run: python prepare_data.py --download-images")
+        "Run: python scripts/prepare_data.py --download-images")
 for name in ("train", "dev", "test"):
     s = manifest["stats"][name]
     print(f"{name:5s} questions={s['questions']:4d} images={s['images']:4d} "
@@ -549,10 +552,10 @@ for record in gallery:
         (IMAGES / record["image"]).read_bytes()).decode("ascii")
 demo_data = {"samples": gallery, "summary": summary}
 demo_json = json.dumps(demo_data, ensure_ascii=False).replace("</", "<\\/")
-html_template = (ROOT / "demo_template.html").read_text(encoding="utf-8")
+html_template = (ROOT / "demo" / "demo_template.html").read_text(encoding="utf-8")
 html = html_template.replace("__VQA_DATA__", demo_json)
-(ROOT / "demo.html").write_text(html, encoding="utf-8")
-print(f"Wrote demo.html with {len(gallery)} real held-out examples")
+(ROOT / "demo" / "demo.html").write_text(html, encoding="utf-8")
+print(f"Wrote demo/demo.html with {len(gallery)} real held-out examples")
 print("Selected model:", selected_model)
 print("First example:", gallery[0]["question"], "->",
       gallery[0]["models"][selected_model]["answer"],

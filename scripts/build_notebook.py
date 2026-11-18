@@ -18,9 +18,9 @@ import traceback
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
-SOURCE = ROOT / "experiment_source.py"
-TARGET = ROOT / "VQA实验.ipynb"
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / "scripts" / "experiment_source.py"
+TARGET = ROOT / "notebooks" / "VQA实验.ipynb"
 
 
 def parse_cells(source: str) -> list[dict]:

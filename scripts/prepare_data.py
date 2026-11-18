@@ -1,4 +1,4 @@
-"""Build a reproducible VQA v2 pilot subset and fetch only its COCO images.
+"""Build a reproducible VQA v2 subset and fetch only its COCO images.
 
 The four official VQA archives are expected in data/raw. No labels from the
 validation set are used to construct the answer vocabulary.
@@ -12,7 +12,7 @@ import random
 import re
 import time
 import zipfile
-from collections import Counter
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -20,12 +20,20 @@ import requests
 from PIL import Image
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 IMAGES = ROOT / "data" / "images"
 MANIFEST = ROOT / "data" / "manifest.json"
+TOP1000_MANIFEST = ROOT / "data" / "manifest_top1000.json"
+TOP1000_DEV_MANIFEST = ROOT / "data" / "manifest_top1000_dev.json"
 FAMILIES = ("yes/no", "count", "color", "animal")
 VOCAB_SIZES = {"yes/no": 2, "count": 11, "color": 12, "animal": 10}
+DEFAULT_SEED = 42
+TOP_ANSWERS = 1000
+MIN_QA_PER_IMAGE = 6
+# Target 6.2 QA/image by sampling whole image groups of 6 and 7 at a 4:1 ratio.
+TOP1000_IMAGE_QUOTAS = {6: 1600, 7: 400}
+TOP1000_DEV_IMAGE_QUOTAS = {6: 640, 7: 160}
 
 ARCHIVES = {
     "train_annotations": "v2_Annotations_Train_mscoco.zip",
@@ -100,8 +108,14 @@ def sample_type(rows: list[dict], count_per_type: int, seed: int) -> list[dict]:
     return selected
 
 
+def validation_dev_ids(rows: list[dict], seed: int) -> set[int]:
+    image_ids = sorted({row["image_id"] for row in rows})
+    random.Random(seed).shuffle(image_ids)
+    return set(image_ids[:len(image_ids) // 2])
+
+
 def build_manifest(train_per_type: int = 800, eval_per_type: int = 80,
-                   vocab_sizes: dict[str, int] | None = None, seed: int = 42) -> dict:
+                   vocab_sizes: dict[str, int] | None = None, seed: int = DEFAULT_SEED) -> dict:
     vocab_sizes = vocab_sizes or VOCAB_SIZES
     train_all = joined_rows("train")
     val_all = joined_rows("val")
@@ -110,10 +124,7 @@ def build_manifest(train_per_type: int = 800, eval_per_type: int = 80,
     train = sample_type(train_all, train_per_type, seed)
 
     # Image-level split within the official labeled validation set.
-    val_image_ids = sorted({row["image_id"] for row in val_all})
-    rng = random.Random(seed)
-    rng.shuffle(val_image_ids)
-    dev_ids = set(val_image_ids[:len(val_image_ids) // 2])
+    dev_ids = validation_dev_ids(val_all, seed)
     dev = sample_type([r for r in val_all if r["image_id"] in dev_ids],
                       eval_per_type, seed + 1)
     test = sample_type([r for r in val_all if r["image_id"] not in dev_ids],
@@ -157,6 +168,118 @@ def build_manifest(train_per_type: int = 800, eval_per_type: int = 80,
     }
     MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def sample_high_frequency_images(
+    rows: list[dict], answer_to_id: dict[str, int], seed: int, *,
+    split: str, quotas: dict[int, int],
+) -> tuple[list[dict], dict]:
+    by_image = defaultdict(list)
+    for row in rows:
+        if row["answer"] in answer_to_id:
+            by_image[row["image_id"]].append(row)
+
+    by_qa_count = defaultdict(list)
+    for image_id, group in by_image.items():
+        if len(group) >= MIN_QA_PER_IMAGE:
+            by_qa_count[len(group)].append(image_id)
+
+    rng = random.Random(seed)
+    selected = []
+    for qa_count, quota in quotas.items():
+        candidates = sorted(by_qa_count[qa_count])
+        if len(candidates) < quota:
+            raise ValueError(
+                f"{split} needs {quota} images with {qa_count} in-vocabulary QA; "
+                f"found {len(candidates)}"
+            )
+        for image_id in rng.sample(candidates, quota):
+            for row in sorted(by_image[image_id], key=lambda row: row["question_id"]):
+                selected.append({
+                    **row,
+                    "split": split,
+                    "question_family": question_family(row) or "other",
+                    "label_id": answer_to_id[row["answer"]],
+                })
+
+    return selected, {
+        "questions": len(selected),
+        "images": sum(quotas.values()),
+        "eligible_images": sum(len(group) for group in by_qa_count.values()),
+        "eligible_images_by_qa_count": {
+            count: len(by_qa_count[count]) for count in sorted(by_qa_count)
+        },
+        "selected_images_by_qa_count": quotas,
+        "answer_types": dict(Counter(row["answer_type"] for row in selected)),
+        "question_families": dict(Counter(row["question_family"] for row in selected)),
+        "unique_answers": len({row["label_id"] for row in selected}),
+    }
+
+
+def build_top1000_manifest(seed: int = DEFAULT_SEED) -> dict:
+    train_all = joined_rows("train")
+    counts = Counter(row["answer"] for row in train_all)
+    vocabulary = sorted(counts, key=lambda answer: (-counts[answer], answer))[:TOP_ANSWERS]
+    if len(vocabulary) != TOP_ANSWERS:
+        raise ValueError(f"Expected {TOP_ANSWERS} training answers; found {len(vocabulary)}")
+    answer_to_id = {answer: index for index, answer in enumerate(vocabulary)}
+    train, train_stats = sample_high_frequency_images(
+        train_all, answer_to_id, seed, split="train", quotas=TOP1000_IMAGE_QUOTAS,
+    )
+
+    manifest = {
+        "source": "VQA v2 real images, https://visualqa.org/download",
+        "images_source": "COCO 2014, https://cocodataset.org/",
+        "seed": seed,
+        "sampling": "Filter official train to its Top-1000 answers; sample whole training "
+                    "image groups within the 6- and 7-QA strata.",
+        "target": "multiple_choice_answer (most frequent human answer)",
+        "vocabulary_source": "Full official train; descending count, then alphabetical order.",
+        "min_qa_per_image": MIN_QA_PER_IMAGE,
+        "vocabulary": vocabulary,
+        "stats": {"train": train_stats},
+        "rows": train,
+    }
+    TOP1000_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    TOP1000_MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def build_top1000_dev_manifest(seed: int = DEFAULT_SEED) -> dict:
+    if not TOP1000_MANIFEST.is_file():
+        raise FileNotFoundError("Build the training vocabulary first: "
+                                "python scripts/prepare_data.py --sampling top1000")
+    train_manifest = json.loads(TOP1000_MANIFEST.read_text(encoding="utf-8"))
+    vocabulary = train_manifest["vocabulary"]
+    answer_to_id = {answer: index for index, answer in enumerate(vocabulary)}
+    if len(vocabulary) != TOP_ANSWERS or len(answer_to_id) != TOP_ANSWERS:
+        raise ValueError(f"Expected {TOP_ANSWERS} distinct training answers")
+
+    val_all = joined_rows("val")
+    # Keep the same dev/test image pools as the default pilot.
+    dev_ids = validation_dev_ids(val_all, DEFAULT_SEED)
+    dev, dev_stats = sample_high_frequency_images(
+        [row for row in val_all if row["image_id"] in dev_ids], answer_to_id, seed,
+        split="dev", quotas=TOP1000_DEV_IMAGE_QUOTAS,
+    )
+    manifest = {
+        "source": train_manifest["source"],
+        "images_source": train_manifest["images_source"],
+        "seed": seed,
+        "val_image_split_seed": DEFAULT_SEED,
+        "sampling": "Filter the official val dev image pool to the training Top-1000 "
+                    "answers; sample whole image groups within the 6- and 7-QA strata.",
+        "target": train_manifest["target"],
+        "vocabulary_source": TOP1000_MANIFEST.name,
+        "min_qa_per_image": MIN_QA_PER_IMAGE,
+        "vocabulary": vocabulary,
+        "stats": {"dev": dev_stats},
+        "rows": dev,
+    }
+    TOP1000_DEV_MANIFEST.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8",
+    )
     return manifest
 
 
@@ -207,13 +330,37 @@ def download_images(manifest: dict, workers: int = 12) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train-per-type", type=int, default=800)
-    parser.add_argument("--eval-per-type", type=int, default=80)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--sampling", choices=("pilot", "top1000", "top1000-dev"),
+                        default="top1000",
+                        help="Choose Top-1000 train (default), Top-1000 dev, or the historical pilot")
+    parser.add_argument("--train-per-type", type=int, help="Historical pilot only (default: 800)")
+    parser.add_argument("--eval-per-type", type=int, help="Historical pilot only (default: 80)")
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--download-images", action="store_true")
     arguments = parser.parse_args()
-    data = build_manifest(arguments.train_per_type, arguments.eval_per_type,
-                          VOCAB_SIZES, arguments.seed)
-    print(json.dumps(data["stats"], ensure_ascii=False, indent=2))
+    if arguments.sampling != "pilot" and (
+        arguments.train_per_type is not None or arguments.eval_per_type is not None
+    ):
+        parser.error("--train-per-type and --eval-per-type require --sampling pilot")
+    if arguments.sampling == "top1000":
+        data = build_top1000_manifest(arguments.seed)
+        print(TOP1000_MANIFEST)
+        stats = data["stats"]["train"]
+        print(f"train: {stats['images']} images, {stats['questions']} QA "
+              f"from {stats['eligible_images']} eligible training images")
+    elif arguments.sampling == "top1000-dev":
+        data = build_top1000_dev_manifest(arguments.seed)
+        print(TOP1000_DEV_MANIFEST)
+        stats = data["stats"]["dev"]
+        print(f"dev: {stats['images']} images, {stats['questions']} QA "
+              f"from {stats['eligible_images']} eligible development images")
+    else:
+        pilot_options = {"seed": arguments.seed}
+        if arguments.train_per_type is not None:
+            pilot_options["train_per_type"] = arguments.train_per_type
+        if arguments.eval_per_type is not None:
+            pilot_options["eval_per_type"] = arguments.eval_per_type
+        data = build_manifest(**pilot_options)
+        print(json.dumps(data["stats"], ensure_ascii=False, indent=2))
     if arguments.download_images:
         download_images(data)

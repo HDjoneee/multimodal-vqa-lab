@@ -5,9 +5,9 @@ import re
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
-html_path = ROOT / "demo.html"
-template_path = ROOT / "demo_template.html"
+DEMO = Path(__file__).resolve().parents[1] / "demo"
+html_path = DEMO / "demo.html"
+template_path = DEMO / "demo_template.html"
 old = html_path.read_text(encoding="utf-8")
 match = re.search(r"const DATA = (.+?);\n    const (?:samples|summary) = ", old, re.DOTALL)
 if not match:
