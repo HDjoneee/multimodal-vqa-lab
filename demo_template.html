@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>VQA 视觉问答实验展示</title>
+  <style>
+    :root { --bg:#0b1020; --panel:#151d31; --panel2:#1c2841; --stroke:#2d3a55;
+      --text:#eef3ff; --muted:#a8b5ce; --blue:#79a9ff; --teal:#5ad4bd;
+      --red:#ff8e96; --gold:#f2c879; }
+    * { box-sizing:border-box; }
+    body { margin:0; overflow-x:hidden; background:radial-gradient(circle at 70% -10%,#22345e 0,transparent 33%),var(--bg);
+      color:var(--text); font:15px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+    button { font:inherit; cursor:pointer; }
+    .shell { width:100%; max-width:1500px; min-width:0; margin:auto; padding:30px 28px 44px; }
+    header { display:flex; justify-content:space-between; align-items:flex-end; gap:22px; margin-bottom:24px; }
+    .eyebrow { color:var(--teal); font-size:12px; letter-spacing:.14em; font-weight:800; text-transform:uppercase; }
+    h1 { margin:4px 0 8px; font-size:clamp(25px,3vw,40px); letter-spacing:-.035em; line-height:1.15; }
+    .subtitle { color:var(--muted); margin:0; max-width:740px; }
+    .head-badge { border:1px solid var(--stroke); color:var(--muted); border-radius:999px;
+      padding:8px 14px; white-space:nowrap; background:#10192b; font-size:13px; }
+    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+    .metric { min-width:0; background:rgba(21,29,49,.87); border:1px solid var(--stroke); border-radius:16px; padding:16px 19px; }
+    .metric .label { color:var(--muted); font-size:12px; }
+    .metric .value { display:block; font-size:25px; line-height:1.2; font-weight:760; margin-top:5px; }
+    .metric .detail { color:var(--muted); font-size:12px; margin-top:5px; overflow-wrap:anywhere; }
+    .layout { display:grid; grid-template-columns:minmax(270px,330px) minmax(0,1fr); gap:18px; align-items:start; }
+    .panel { min-width:0; background:rgba(21,29,49,.95); border:1px solid var(--stroke); border-radius:19px; overflow:hidden; }
+    .side-head { padding:19px 18px 13px; border-bottom:1px solid var(--stroke); }
+    h2 { margin:0; font-size:18px; letter-spacing:-.02em; }
+    .hint { color:var(--muted); font-size:12px; margin:5px 0 0; }
+    .filters { display:flex; gap:7px; flex-wrap:wrap; margin-top:16px; }
+    .filter { border:1px solid var(--stroke); background:#15223a; color:var(--muted);
+      padding:6px 10px; border-radius:999px; font-size:12px; }
+    .filter.active { color:#0a1726; background:var(--teal); border-color:var(--teal); font-weight:700; }
+    .samples { max-height:780px; overflow:auto; padding:8px; }
+    .sample { display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+      border:1px solid transparent; border-radius:13px; background:transparent; color:var(--text);
+      padding:9px; margin:3px 0; }
+    .sample:hover, .sample.active { background:var(--panel2); border-color:#405579; }
+    .sample img { width:65px; height:57px; object-fit:cover; border-radius:8px; background:#070b15; flex:none; }
+    .sample .copy { min-width:0; flex:1; }
+    .sample .question { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; }
+    .sample .small { font-size:11px; color:var(--muted); margin-top:4px; }
+    .sample .status { font-size:11px; font-weight:700; }
+    .correct { color:var(--teal); } .wrong { color:var(--red); }
+    .viewer { padding:21px; }
+    .viewer-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+    .viewer-head .meta { color:var(--muted); font-size:12px; }
+    .nav { display:flex; gap:7px; }
+    .nav button { border:1px solid var(--stroke); background:var(--panel2); color:var(--text);
+      width:35px; height:35px; border-radius:9px; }
+    .nav button:hover { border-color:var(--blue); }
+    .image-wrap { background:#090e1a; border:1px solid #29354d; border-radius:15px;
+      min-height:300px; height:min(44vw,450px); display:flex; align-items:center; justify-content:center;
+      overflow:hidden; }
+    .image-wrap img { display:block; max-width:100%; max-height:100%; object-fit:contain; }
+    .question-block { padding:18px 2px 11px; }
+    .question-block .eyebrow { color:var(--blue); }
+    .question-block h2 { font-size:clamp(19px,2.2vw,28px); margin:6px 0 8px; line-height:1.28; }
+    .truth { color:var(--muted); font-size:13px; }
+    .truth strong { color:var(--text); font-weight:650; }
+    .answer-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:11px; margin-top:10px; }
+    .answer-card { background:var(--panel2); border:1px solid var(--stroke); padding:14px 16px; border-radius:13px; }
+    .answer-card.chosen { border-color:var(--blue); box-shadow:inset 0 0 0 1px #4a6eae; }
+    .answer-card .model { display:flex; justify-content:space-between; gap:8px; color:var(--muted); font-size:12px; }
+    .answer-card .answer { font-size:21px; font-weight:750; margin:6px 0 8px; word-break:break-word; }
+    .track { height:5px; border-radius:99px; background:#35425b; overflow:hidden; }
+    .track span { height:100%; display:block; background:var(--blue); border-radius:inherit; }
+    .answer-card .conf { color:var(--muted); text-align:right; font-size:11px; margin-top:6px; }
+    .below { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; margin-top:18px; }
+    .info { padding:20px 22px; }
+    .bar-row { display:grid; grid-template-columns:75px 1fr 46px; gap:9px; align-items:center; margin:13px 0; font-size:12px; }
+    .bar-row .name { color:var(--muted); }
+    .bar-row .track { height:8px; }
+    .bar-row .track span { background:var(--teal); }
+    .bar-row .pct { text-align:right; font-weight:700; }
+    .info p { color:var(--muted); font-size:13px; margin:11px 0 0; }
+    .info a { color:var(--blue); }
+    footer { color:#8797b5; font-size:12px; margin-top:21px; }
+    @media(max-width:980px) { .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .layout { grid-template-columns:minmax(0,1fr); }
+      .samples { display:flex; overflow:auto; max-height:none; } .sample { min-width:210px; max-width:250px; }
+      .image-wrap { height:430px; } }
+    @media(max-width:620px) { .shell { padding:19px 13px 30px; } header { display:block; }
+      .eyebrow { overflow-wrap:anywhere; }
+      .head-badge { display:inline-block; margin-top:13px; } .metrics { gap:8px; }
+      .metric { padding:12px; } .metric .value { font-size:20px; } .viewer { padding:12px; }
+      .image-wrap { height:290px; min-height:0; } .answer-grid,.below { grid-template-columns:minmax(0,1fr); } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">Course project · Visual Question Answering</div>
+        <h1>看图回答问题</h1>
+        <p class="subtitle">VQA v2 小规模实验。切换未参与训练的测试样例，查看图文模型与仅文本模型的真实预测。</p>
+      </div>
+      <div class="head-badge">离线样例展示 · 分类式短答案</div>
+    </header>
+
+    <section class="metrics" aria-label="实验概况">
+      <div class="metric"><span class="label">训练问题</span><strong id="train-count" class="value">—</strong><div class="detail">VQA v2 官方 train 子集</div></div>
+      <div class="metric"><span class="label">独立测试问题</span><strong id="test-count" class="value">—</strong><div class="detail">按图片 ID 与开发集隔离</div></div>
+      <div class="metric"><span class="label">展示模型测试准确率</span><strong id="test-acc" class="value">—</strong><div class="detail">包含词表外样本</div></div>
+      <div class="metric"><span class="label">测试答案词表覆盖率</span><strong id="coverage" class="value">—</strong><div class="detail">按问题类型建立词表</div></div>
+    </section>
+
+    <div class="layout">
+      <aside class="panel">
+        <div class="side-head">
+          <h2>测试样例</h2>
+          <p class="hint">每种问题类型包含正确和错误案例</p>
+          <div class="filters" id="filters"></div>
+        </div>
+        <div class="samples" id="samples"></div>
+      </aside>
+      <main class="panel viewer">
+        <div class="viewer-head"><span id="position" class="meta"></span><div class="nav"><button id="prev" aria-label="上一个">←</button><button id="next" aria-label="下一个">→</button></div></div>
+        <div class="image-wrap"><img id="main-image" alt="VQA 测试图片"></div>
+        <div class="question-block">
+          <div id="type" class="eyebrow"></div>
+          <h2 id="main-question"></h2>
+          <div class="truth">人工主答案：<strong id="truth"></strong> <span id="sample-status"></span> · <a id="image-source" href="#" target="_blank" rel="noreferrer">COCO 原图</a></div>
+        </div>
+        <div class="answer-grid" id="answers"></div>
+      </main>
+    </div>
+
+    <section class="below">
+      <div class="panel info"><h2>按问题类型的准确率</h2><div id="type-bars"></div><p>显示模型由开发集准确率选出。测试集每种问题类型各 80 题，柱状图仅供分析。</p></div>
+      <div class="panel info"><h2>实验口径</h2>
+        <p>答案来自训练集各问题类型的高频词，预测时限制在该类型的词表中。指标是预测与 10 人答案众数的完全一致率，测试集 OOV 计为错误。</p>
+        <p>置信分数为分类头 softmax 输出，未经概率校准。页面使用固定测试样例，不执行新的模型推理。</p>
+        <p id="hardware"></p>
+        <p>数据：<a href="https://visualqa.org/download" target="_blank" rel="noreferrer">VQA v2</a> · <a href="https://cocodataset.org/" target="_blank" rel="noreferrer">COCO</a>；模型：<a href="https://github.com/openai/CLIP" target="_blank" rel="noreferrer">OpenAI CLIP</a>。</p>
+      </div>
+    </section>
+    <footer>完整采样、训练、对比、评估和导出过程见同目录的 VQA 实验 Notebook。</footer>
+  </div>
+  <script>
+    const DATA = __VQA_DATA__;
+    const summary = DATA.summary;
+    const selected = summary.selected_model;
+    const priority = sample => (sample.models[selected].correct && !sample.models.text.correct ? 0 : 10)
+      + ({animal:0,color:1,count:2,"yes/no":3}[sample.question_family] ?? 4);
+    const samples = DATA.samples.slice().sort((a,b)=>priority(a)-priority(b));
+    const modelNames = {text:"仅文本", fusion:"图文融合 · 10轮", frozen_cont:"图文冻结 · 延续训练", finetune:"图文局部微调"};
+    const typeNames = {"yes/no":"是非", count:"数量", color:"颜色", animal:"动物类别"};
+    const percent = value => (100 * value).toFixed(1) + "%";
+    let filter = "all", active = 0;
+    const $ = id => document.getElementById(id);
+    $("train-count").textContent = (summary.train_per_type * 4).toLocaleString();
+    $("test-count").textContent = (summary.eval_per_type * 4).toLocaleString();
+    $("test-acc").textContent = percent(summary.test_scores[selected].overall);
+    $("coverage").textContent = percent(summary.vocab_coverage.test);
+    $("hardware").textContent = `模型总参数 ${ (summary.total_params/1e6).toFixed(1) }M；估算图文前向 ${(summary.macs.fusion/1e9).toFixed(2)}G MACs；单样本中位耗时 ${summary.latency_ms_median.toFixed(1)} ms（${summary.device}，不含预处理）。`;
+
+    function filtered() { return samples.map((s,i)=>({s,i})).filter(x=>filter==="all" || x.s.question_family===filter); }
+    function renderFilters() {
+      const el = $("filters"); el.replaceChildren();
+      for (const [key,label] of [["all","全部"],["yes/no","是非"],["count","数量"],["color","颜色"],["animal","动物"]]) {
+        const button=document.createElement("button"); button.className="filter"+(filter===key?" active":"");
+        button.textContent=label; button.onclick=()=>{filter=key; active=filtered()[0]?.i ?? 0; render();}; el.append(button);
+      }
+    }
+    function renderList() {
+      const el=$("samples"); el.replaceChildren();
+      for (const {s,i} of filtered()) {
+        const button=document.createElement("button"); button.className="sample"+(i===active?" active":"");
+        const img=document.createElement("img"); img.src=s.image_data; img.alt="";
+        const copy=document.createElement("span"); copy.className="copy";
+        const q=document.createElement("span"); q.className="question"; q.textContent=s.question;
+        const small=document.createElement("span"); small.className="small"; small.textContent=typeNames[s.question_family]+" · 正确答案 "+s.answer;
+        copy.append(q,small);
+        const status=document.createElement("span"); status.className="status "+(s.models[selected].correct?"correct":"wrong");
+        status.textContent=s.models[selected].correct?"✓":"×";
+        button.append(img,copy,status); button.onclick=()=>{active=i; render();}; el.append(button);
+      }
+    }
+    function renderAnswers(s) {
+      const el=$("answers"); el.replaceChildren();
+      for (const key of ["text","fusion","frozen_cont","finetune"]) {
+        const p=s.models[key], card=document.createElement("div");
+        card.className="answer-card"+(key===selected?" chosen":"");
+        const top=document.createElement("div"); top.className="model";
+        const name=document.createElement("span"); name.textContent=modelNames[key]+(key===selected?" · 展示模型":"");
+        const status=document.createElement("span"); status.className=p.correct?"correct":"wrong";
+        status.textContent=p.correct?"正确":"错误"; top.append(name,status);
+        const answer=document.createElement("div"); answer.className="answer"; answer.textContent=p.answer;
+        const track=document.createElement("div"); track.className="track";
+        const fill=document.createElement("span"); fill.style.width=percent(p.confidence); track.append(fill);
+        const confidence=document.createElement("div"); confidence.className="conf"; confidence.textContent="置信分数 "+percent(p.confidence);
+        card.append(top,answer,track,confidence); el.append(card);
+      }
+    }
+    function renderBars() {
+      const el=$("type-bars"); el.replaceChildren();
+      for (const [key,label] of [["yes/no","是非"],["count","数量"],["color","颜色"],["animal","动物"]]) {
+        const row=document.createElement("div"); row.className="bar-row";
+        const name=document.createElement("span"); name.className="name"; name.textContent=label;
+        const track=document.createElement("div"); track.className="track";
+        const fill=document.createElement("span"); fill.style.width=percent(summary.test_scores[selected].by_type[key]); track.append(fill);
+        const value=document.createElement("span"); value.className="pct"; value.textContent=percent(summary.test_scores[selected].by_type[key]);
+        row.append(name,track,value); el.append(row);
+      }
+    }
+    function render() {
+      renderFilters(); renderList(); renderBars();
+      const s=samples[active]; if(!s)return;
+      $("main-image").src=s.image_data; $("main-image").alt="VQA 测试图片，编号 "+s.image_id;
+      $("main-question").textContent=s.question;
+      $("truth").textContent=s.answer;
+      $("image-source").href="http://images.cocodataset.org/"+s.image;
+      $("type").textContent=typeNames[s.question_family]+"问题 · 图片 #"+s.image_id;
+      $("sample-status").textContent=s.label_id<0?"· 该答案不在词表中":"";
+      const group=filtered(), position=group.findIndex(x=>x.i===active);
+      $("position").textContent=`样例 ${position+1} / ${group.length}`;
+      renderAnswers(s);
+    }
+    function move(direction) { const group=filtered(); if(!group.length)return;
+      const position=group.findIndex(x=>x.i===active); active=group[(position+direction+group.length)%group.length].i; render(); }
+    $("prev").onclick=()=>move(-1); $("next").onclick=()=>move(1);
+    document.addEventListener("keydown",e=>{ if(e.key==="ArrowLeft")move(-1); if(e.key==="ArrowRight")move(1); });
+    render();
+  </script>
+</body>
+</html>

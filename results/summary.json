@@ -1,0 +1,88 @@
+{
+  "task": "VQA v2 pilot, classification exact match",
+  "seed": 42,
+  "train_per_type": 800,
+  "eval_per_type": 80,
+  "top_k": 35,
+  "vocab_sizes": {
+    "yes/no": 2,
+    "count": 11,
+    "color": 12,
+    "animal": 10
+  },
+  "head_epochs": 10,
+  "continue_epochs": 2,
+  "vocab_coverage": {
+    "train": 0.90375,
+    "dev": 0.909375,
+    "test": 0.878125
+  },
+  "dev_accuracy": {
+    "text": 0.34375,
+    "fusion": 0.48750001192092896,
+    "frozen_cont": 0.46562498807907104,
+    "finetune": 0.4593749940395355
+  },
+  "test_scores": {
+    "text": {
+      "overall": 0.290625,
+      "by_type": {
+        "yes/no": 0.5625,
+        "count": 0.25,
+        "color": 0.25,
+        "animal": 0.1
+      }
+    },
+    "fusion": {
+      "overall": 0.434375,
+      "by_type": {
+        "yes/no": 0.55,
+        "count": 0.275,
+        "color": 0.3,
+        "animal": 0.6125
+      }
+    },
+    "frozen_cont": {
+      "overall": 0.446875,
+      "by_type": {
+        "yes/no": 0.6,
+        "count": 0.2375,
+        "color": 0.3625,
+        "animal": 0.5875
+      }
+    },
+    "finetune": {
+      "overall": 0.434375,
+      "by_type": {
+        "yes/no": 0.575,
+        "count": 0.2125,
+        "color": 0.325,
+        "animal": 0.625
+      }
+    },
+    "majority": {
+      "overall": 0.234375,
+      "by_type": {
+        "yes/no": 0.4375,
+        "count": 0.275,
+        "color": 0.1375,
+        "animal": 0.0875
+      }
+    }
+  },
+  "selected_model": "fusion",
+  "total_params": 151810852,
+  "head_trainable_params": 533539,
+  "finetune_trainable_params": 8016163,
+  "macs": {
+    "image": 4408811520,
+    "text": 2979770368,
+    "head": 533248,
+    "text_only": 2980303616,
+    "fusion": 7389115136
+  },
+  "latency_ms_median": 33.207150001544505,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "python": "3.11.0rc2",
+  "torch": "2.9.0+cu128"
+}

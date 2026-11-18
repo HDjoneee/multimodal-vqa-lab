@@ -1,0 +1,12 @@
+data/raw/
+data/images/
+data/manifest.json
+results/features_*.pt
+results/finetuned_layers.pt
+vendor/python/
+vendor/CLIP-main/
+__pycache__/
+.ipynb_checkpoints/
+results/*preview*.png
+results/chrome*/
+results/edge*/

@@ -1,0 +1,9 @@
+torch>=2.2
+torchvision
+Pillow
+matplotlib
+requests
+ftfy
+regex
+packaging
+tqdm
