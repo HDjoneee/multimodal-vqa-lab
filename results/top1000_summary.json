@@ -4,118 +4,118 @@
   "epochs": 16,
   "selected_model": "fusion",
   "train_images": 2000,
-  "train_questions": 12400,
+  "train_questions": 20989,
   "dev_images": 800,
-  "dev_filtered_questions": 4960,
-  "dev_all_questions": 5547,
-  "dev_vocab_coverage": 0.8941770326302506,
-  "train_observed_answers": 829,
-  "dev_unseen_class_questions": 81,
+  "dev_filtered_questions": 8083,
+  "dev_all_questions": 8969,
+  "dev_vocab_coverage": 0.9012152971345746,
+  "train_observed_answers": 900,
+  "dev_unseen_class_questions": 60,
   "selection_images": 600,
   "calibration_images": 200,
   "best_epoch": {
-    "text": 15,
-    "fusion": 11
+    "text": 9,
+    "fusion": 16
   },
   "scores": {
     "text": {
       "selection": {
-        "exact_match": 0.3412207582683517,
-        "vqa_style": 0.42285560634578967,
-        "questions": 3719
+        "exact_match": 0.3730417754569191,
+        "vqa_style": 0.45208877284595445,
+        "questions": 6128
       },
       "calibration": {
-        "exact_match": 0.33521353746978244,
-        "vqa_style": 0.4199033037872689,
-        "questions": 1241
+        "exact_match": 0.35038363171355497,
+        "vqa_style": 0.435294117647058,
+        "questions": 1955
       },
       "filtered_dev": {
-        "exact_match": 0.3397177419354839,
-        "vqa_style": 0.4221169354838685,
-        "questions": 4960
+        "exact_match": 0.36756154892985277,
+        "vqa_style": 0.4480267227514563,
+        "questions": 8083
       },
       "unfiltered_dev": {
-        "exact_match": 0.3037678024157202,
-        "vqa_style": 0.38107084910762357,
-        "questions": 5547
+        "exact_match": 0.3312520905340618,
+        "vqa_style": 0.40888616345189277,
+        "questions": 8969
       }
     },
     "fusion": {
       "selection": {
-        "exact_match": 0.3944608765797257,
-        "vqa_style": 0.47133638074751066,
-        "questions": 3719
+        "exact_match": 0.4247715404699739,
+        "vqa_style": 0.5103785900783315,
+        "questions": 6128
       },
       "calibration": {
-        "exact_match": 0.38033843674456086,
-        "vqa_style": 0.4702659145850122,
-        "questions": 1241
+        "exact_match": 0.42813299232736574,
+        "vqa_style": 0.5128388746803055,
+        "questions": 1955
       },
       "filtered_dev": {
-        "exact_match": 0.3909274193548387,
-        "vqa_style": 0.4710685483870952,
-        "questions": 4960
+        "exact_match": 0.42558456018804897,
+        "vqa_style": 0.5109736483978764,
+        "questions": 8083
       },
       "unfiltered_dev": {
-        "exact_match": 0.3495583198125113,
-        "vqa_style": 0.4252929511447616,
-        "questions": 5547
+        "exact_match": 0.38354331586575985,
+        "vqa_style": 0.46572639090200035,
+        "questions": 8969
       }
     },
     "majority": {
       "unfiltered_dev": {
-        "exact_match": 0.1905534523165675,
-        "vqa_style": 0.24835045970794917,
-        "questions": 5547
+        "exact_match": 0.2119522800758167,
+        "vqa_style": 0.26552569963206574,
+        "questions": 8969
       }
     }
   },
   "by_answer_type": {
     "yes/no": {
       "text": {
-        "exact_match": 0.5184287099903007,
-        "vqa_style": 0.6552376333656621,
-        "questions": 2062
+        "exact_match": 0.5710843373493976,
+        "vqa_style": 0.6986445783132521,
+        "questions": 3320
       },
       "fusion": {
-        "exact_match": 0.5708050436469447,
-        "vqa_style": 0.6975751697381156,
-        "questions": 2062
+        "exact_match": 0.6144578313253012,
+        "vqa_style": 0.7382228915662643,
+        "questions": 3320
       }
     },
     "number": {
       "text": {
-        "exact_match": 0.23707440100882723,
-        "vqa_style": 0.2891551071878941,
-        "questions": 793
+        "exact_match": 0.27128082736674625,
+        "vqa_style": 0.33214001591089903,
+        "questions": 1257
       },
       "fusion": {
-        "exact_match": 0.23707440100882723,
-        "vqa_style": 0.29319041614123587,
-        "questions": 793
+        "exact_match": 0.27128082736674625,
+        "vqa_style": 0.34232299124900606,
+        "questions": 1257
       }
     },
     "other": {
       "text": {
-        "exact_match": 0.1589895988112927,
-        "vqa_style": 0.19814264487370026,
-        "questions": 2692
+        "exact_match": 0.16712204007285975,
+        "vqa_style": 0.21181693989070957,
+        "questions": 4392
       },
       "fusion": {
-        "exact_match": 0.21322436849925705,
-        "vqa_style": 0.25564635958395227,
-        "questions": 2692
+        "exact_match": 0.24112021857923496,
+        "vqa_style": 0.29505919854280327,
+        "questions": 4392
       }
     }
   },
   "temperatures": {
-    "text": 1.455690622329712,
-    "fusion": 1.2839508056640625
+    "text": 1.2170383930206299,
+    "fusion": 1.4640096426010132
   },
   "majority_answer": "no",
   "head_trainable_params": 1562088,
   "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
-  "python": "3.11.0rc2",
-  "torch": "2.9.0+cu128",
+  "python": "3.10.20",
+  "torch": "2.14.1+cu126",
   "metric_note": "VQA-style 10-annotator agreement with short-answer normalization; official Test-Dev score requires EvalAI."
 }

@@ -1,0 +1,165 @@
+{
+  "task": "VQA v2 Top-1000 answer classification, three aligned training groups",
+  "design": "All three groups train a freshly initialised classification head for the same number of epochs with identical data, seed, optimizer and hyperparameters. The only differences are whether image features enter the head and whether the last visual block of CLIP is unfrozen.",
+  "seed": 42,
+  "epochs": 10,
+  "batch_size": 32,
+  "head_lr": 0.0008,
+  "backbone_lr": 1e-05,
+  "selected_model": "fusion",
+  "train_images": 2000,
+  "train_questions": 20989,
+  "dev_images": 800,
+  "dev_filtered_questions": 8083,
+  "dev_all_questions": 8969,
+  "dev_vocab_coverage": 0.9012152971345746,
+  "train_observed_answers": 900,
+  "dev_unseen_class_questions": 60,
+  "selection_images": 600,
+  "calibration_images": 200,
+  "best_epoch": {
+    "text": 4,
+    "fusion": 10,
+    "finetune": 8
+  },
+  "scores": {
+    "text": {
+      "selection": {
+        "exact_match": 0.35868668536545123,
+        "vqa_style": 0.4430292031017991,
+        "questions": 6061
+      },
+      "calibration": {
+        "exact_match": 0.3590504451038576,
+        "vqa_style": 0.444757665677546,
+        "questions": 2022
+      },
+      "filtered_dev": {
+        "exact_match": 0.3587776815538785,
+        "vqa_style": 0.4434615860447883,
+        "questions": 8083
+      },
+      "unfiltered_dev": {
+        "exact_match": 0.32333593488683243,
+        "vqa_style": 0.404203367153532,
+        "questions": 8969
+      }
+    },
+    "fusion": {
+      "selection": {
+        "exact_match": 0.4151130176538525,
+        "vqa_style": 0.4973601715888488,
+        "questions": 6061
+      },
+      "calibration": {
+        "exact_match": 0.4188921859545005,
+        "vqa_style": 0.5021266073194844,
+        "questions": 2022
+      },
+      "filtered_dev": {
+        "exact_match": 0.41605839416058393,
+        "vqa_style": 0.4985525176295969,
+        "questions": 8083
+      },
+      "unfiltered_dev": {
+        "exact_match": 0.3749581893187646,
+        "vqa_style": 0.45439848366596447,
+        "questions": 8969
+      }
+    },
+    "finetune": {
+      "selection": {
+        "exact_match": 0.4038937469064511,
+        "vqa_style": 0.4892591981521223,
+        "questions": 6061
+      },
+      "calibration": {
+        "exact_match": 0.42037586547972305,
+        "vqa_style": 0.4984668644906023,
+        "questions": 2022
+      },
+      "filtered_dev": {
+        "exact_match": 0.40801682543610046,
+        "vqa_style": 0.49156253866139227,
+        "questions": 8083
+      },
+      "unfiltered_dev": {
+        "exact_match": 0.3677110045713011,
+        "vqa_style": 0.4470063552235521,
+        "questions": 8969
+      }
+    },
+    "majority": {
+      "unfiltered_dev": {
+        "exact_match": 0.2119522800758167,
+        "vqa_style": 0.26552569963206574,
+        "questions": 8969
+      }
+    }
+  },
+  "by_answer_type": {
+    "yes/no": {
+      "text": {
+        "exact_match": 0.5683734939759036,
+        "vqa_style": 0.7016867469879509,
+        "questions": 3320
+      },
+      "fusion": {
+        "exact_match": 0.6066265060240964,
+        "vqa_style": 0.7308734939759032,
+        "questions": 3320
+      },
+      "finetune": {
+        "exact_match": 0.6021084337349397,
+        "vqa_style": 0.7268674698795174,
+        "questions": 3320
+      }
+    },
+    "number": {
+      "text": {
+        "exact_match": 0.25218774860779636,
+        "vqa_style": 0.3169451073985683,
+        "questions": 1257
+      },
+      "fusion": {
+        "exact_match": 0.29912490055688146,
+        "vqa_style": 0.35934765314240297,
+        "questions": 1257
+      },
+      "finetune": {
+        "exact_match": 0.28003182179793157,
+        "vqa_style": 0.34908512330946745,
+        "questions": 1257
+      }
+    },
+    "other": {
+      "text": {
+        "exact_match": 0.15846994535519127,
+        "vqa_style": 0.2043032786885238,
+        "questions": 4392
+      },
+      "fusion": {
+        "exact_match": 0.2215391621129326,
+        "vqa_style": 0.27260928961748465,
+        "questions": 4392
+      },
+      "finetune": {
+        "exact_match": 0.21561930783242259,
+        "vqa_style": 0.2634790528233135,
+        "questions": 4392
+      }
+    }
+  },
+  "temperatures": {
+    "text": 1.2434009313583374,
+    "fusion": 1.8587831258773804,
+    "finetune": 1.8928215503692627
+  },
+  "majority_answer": "no",
+  "head_trainable_params": 1562088,
+  "finetune_backbone_params": 7482624,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "python": "3.10.20",
+  "torch": "2.14.1+cu126",
+  "metric_note": "VQA-style 10-annotator agreement with short-answer normalization; official Test-Dev score requires EvalAI."
+}

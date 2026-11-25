@@ -1,9 +1,9 @@
 # %% [markdown]
 # # VQA v2 Top-1000 答案分类实验
 #
-# 使用官方 train 的答案频次建立 Top-1000 词表，按图片抽样 12,400 道训练题。
-# 开发集有 800 张与训练集不相交的图片：4,960 道词表内题用于主要分类评价；
-# 同一批图片的全部 5,547 道题用于检查答案覆盖率和词表外表现。
+# 使用官方 train 的答案频次建立 Top-1000 词表，按图片密度分层抽样得到训练题。
+# 开发集有 800 张与训练集不相交的图片：词表内题用于主要分类评价；
+# 同一批图片的全部题用于检查答案覆盖率和词表外表现。
 # 本实验不读取标注的 `answer_type` 来决定模型输出；它只用于结果分组。
 # 结果均为开发集结果，不能称作 VQA v2 官方测试成绩。
 #
@@ -79,7 +79,8 @@ train_rows = train_manifest["rows"]
 dev_rows = dev_manifest["rows"]
 train_ids = {row["image_id"] for row in train_rows}
 dev_ids = sorted({row["image_id"] for row in dev_rows})
-assert len(train_rows) == 12400 and len(dev_rows) == 4960
+assert len(train_rows) == train_manifest["stats"]["train"]["questions"]
+assert len(dev_rows) == dev_manifest["stats"]["dev"]["questions"]
 assert len(train_ids) == 2000 and len(dev_ids) == 800
 assert not (train_ids & set(dev_ids))
 
@@ -403,5 +404,6 @@ for index, row in enumerate(all_dev):
     prediction_rows.append(record)
 (RESULTS / "top1000_predictions.json").write_text(
     json.dumps(prediction_rows, ensure_ascii=False, indent=2), encoding="utf-8")
-print("Saved Top-1000 summary, 5,547 development predictions, plots and local head checkpoint")
+print(f"Saved Top-1000 summary, {len(all_dev):,} development predictions, "
+      "plots and local head checkpoint")
 print("Selected model:", selected)

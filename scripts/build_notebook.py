@@ -104,7 +104,8 @@ def execute(notebook: dict) -> None:
             cell["outputs"].append({"output_type": "stream", "name": "stderr",
                                     "text": err.getvalue()})
         for filename in ("data_distribution.png", "training_curves.png",
-                         "top1000_training_curves.png", "top1000_by_type.png"):
+                         "top1000_training_curves.png", "top1000_by_type.png",
+                         "three_way_training_curves.png", "three_way_by_type.png"):
             if f'"{filename}"' in cell["source"]:
                 image_path = ROOT / "results" / filename
                 if image_path.is_file():

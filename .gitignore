@@ -4,9 +4,15 @@ data/images/
 data/manifest.json
 data/manifest_top1000.json
 data/manifest_top1000_dev.json
+data/manifest_top1000_test.json
 results/features_*.pt
 results/top1000_features_*.pt
 results/top1000_head.pt
+results/three_way_head.pt
+results/three_way_checkpoint.pt
+results/three_way_run*.log
+results/top1000_run*.log
+results/archive_12400qa/
 results/finetuned_layers.pt
 vendor/python/
 vendor/CLIP-main/
