@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import urllib.request
 import zipfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW = ROOT / "data" / "raw"
-VENDOR = ROOT / "vendor"
+RAW = Path(os.environ.get("VQA_DATA_ROOT", ROOT / "data")).expanduser().resolve() / "raw"
+VENDOR = Path(os.environ.get("VQA_VENDOR_ROOT", ROOT / "vendor")).expanduser().resolve()
 VQA_ROOT = "https://cvmlp.s3.amazonaws.com/vqa/mscoco/vqa"
 VQA_NAMES = (
     "v2_Annotations_Train_mscoco.zip",

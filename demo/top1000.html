@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VQA Top-1000 · 图文问答实验</title>
+  <style>
+    :root { color-scheme: light; --ink:#162333; --muted:#56657b; --line:#dbe3eb; --blue:#164e9d; --paper:#f4f7fb; --green:#116b50; --red:#a43a3a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    a { color:var(--blue); }
+    .wrap { max-width:1180px; margin:auto; padding:24px 22px 64px; }
+    header { background:linear-gradient(115deg,#142c50,#185388); color:#fff; }
+    header .wrap { padding-top:52px; padding-bottom:48px; }
+    .eyebrow { margin:0 0 10px; color:#bcd5f4; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { font-size:clamp(32px,5vw,52px); line-height:1.1; margin:0 0 14px; }
+    header p { max-width:760px; margin:0; color:#deebf8; }
+    h2 { margin:36px 0 14px; font-size:25px; }
+    .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-top:-27px; }
+    .metric,.panel,.card { background:white; border:1px solid var(--line); border-radius:15px; box-shadow:0 4px 22px rgba(31,55,84,.055); }
+    .metric { padding:18px 20px; }
+    .metric .value { font-size:27px; font-weight:750; line-height:1.15; }
+    .metric .label { color:var(--muted); font-size:13px; margin-top:5px; }
+    .note { margin:18px 0; color:var(--muted); font-size:14px; }
+    .panel { padding:20px; }
+    .comparison { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .comparison article { padding:16px; background:#f7f9fc; border-radius:11px; }
+    .comparison strong { display:block; font-size:23px; }
+    .comparison span { color:var(--muted); font-size:13px; }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin:16px 0 18px; }
+    .controls label { display:grid; gap:4px; font-size:13px; font-weight:650; }
+    select { border:1px solid #bac8d8; border-radius:8px; background:#fff; padding:9px 30px 9px 10px; font:inherit; color:var(--ink); }
+    .count { margin-left:auto; color:var(--muted); font-size:14px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px; }
+    .card { overflow:hidden; }
+    .card img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#e8edf3; }
+    .body { padding:16px; }
+    .tags { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .tag { display:inline-block; font-size:12px; font-weight:700; padding:3px 8px; background:#e7eef8; border-radius:99px; }
+    .good { color:var(--green); } .bad { color:var(--red); }
+    .question { font-size:17px; font-weight:680; min-height:54px; margin:12px 0; }
+    .answer { font-size:18px; font-weight:750; margin:0; }
+    .minor { color:var(--muted); font-size:13px; margin:6px 0 0; }
+    .source { display:inline-block; margin-top:10px; font-size:13px; }
+    footer { margin-top:34px; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <p class="eyebrow">VQA v2 / Top-1000 answers</p>
+    <h1>看图，回答问题</h1>
+    <p>冻结 CLIP 特征与小型分类头的真实开发集实验。输入为图片与英文问题，输出为短答案及校准后的模型分数。以下为预计算案例。</p>
+  </div></header>
+  <main class="wrap">
+    <section class="metrics" id="metrics" aria-label="实验规模和结果"></section>
+    <p class="note">开发集来自官方 val，按图片与训练集隔离。词表内成绩仅针对经过答案过滤的高频答案题；本页数据不是官方 Test-Dev 成绩。图片从 COCO 官方服务器加载，需要网络。</p>
+    <h2>模型对照</h2>
+    <section class="panel comparison" id="comparison"></section>
+    <h2>图文问答案例</h2>
+    <section class="controls" aria-label="案例筛选">
+      <label>模型<select id="model"><option value="fusion">图文融合</option><option value="text">仅文本</option></select></label>
+      <label>答案类型<select id="type"><option value="all">全部类型</option><option value="yes/no">是非</option><option value="number">数量</option><option value="other">其他</option></select></label>
+      <label>预测结果<select id="correct"><option value="all">全部</option><option value="true">正确</option><option value="false">错误</option></select></label>
+      <span class="count" id="count"></span>
+    </section>
+    <section class="grid" id="gallery" aria-live="polite"></section>
+    <footer>来源：<a href="https://visualqa.org/">VQA v2</a> · <a href="https://cocodataset.org/">COCO 2014</a> · <a href="https://github.com/openai/CLIP">OpenAI CLIP</a>。图片版权归各原上传者。</footer>
+  </main>
+  <script>
+    const DATA = {"summary": {"task": "VQA v2 Top-1000 answer classification, development set only", "seed": 42, "epochs": 16, "selected_model": "fusion", "train_images": 2000, "train_questions": 12400, "dev_images": 800, "dev_filtered_questions": 4960, "dev_all_questions": 5547, "dev_vocab_coverage": 0.8941770326302506, "train_observed_answers": 829, "dev_unseen_class_questions": 81, "selection_images": 600, "calibration_images": 200, "best_epoch": {"text": 15, "fusion": 11}, "scores": {"text": {"selection": {"exact_match": 0.3412207582683517, "vqa_style": 0.42285560634578967, "questions": 3719}, "calibration": {"exact_match": 0.33521353746978244, "vqa_style": 0.4199033037872689, "questions": 1241}, "filtered_dev": {"exact_match": 0.3397177419354839, "vqa_style": 0.4221169354838685, "questions": 4960}, "unfiltered_dev": {"exact_match": 0.3037678024157202, "vqa_style": 0.38107084910762357, "questions": 5547}}, "fusion": {"selection": {"exact_match": 0.3944608765797257, "vqa_style": 0.47133638074751066, "questions": 3719}, "calibration": {"exact_match": 0.38033843674456086, "vqa_style": 0.4702659145850122, "questions": 1241}, "filtered_dev": {"exact_match": 0.3909274193548387, "vqa_style": 0.4710685483870952, "questions": 4960}, "unfiltered_dev": {"exact_match": 0.3495583198125113, "vqa_style": 0.4252929511447616, "questions": 5547}}, "majority": {"unfiltered_dev": {"exact_match": 0.1905534523165675, "vqa_style": 0.24835045970794917, "questions": 5547}}}, "by_answer_type": {"yes/no": {"text": {"exact_match": 0.5184287099903007, "vqa_style": 0.6552376333656621, "questions": 2062}, "fusion": {"exact_match": 0.5708050436469447, "vqa_style": 0.6975751697381156, "questions": 2062}}, "number": {"text": {"exact_match": 0.23707440100882723, "vqa_style": 0.2891551071878941, "questions": 793}, "fusion": {"exact_match": 0.23707440100882723, "vqa_style": 0.29319041614123587, "questions": 793}}, "other": {"text": {"exact_match": 0.1589895988112927, "vqa_style": 0.19814264487370026, "questions": 2692}, "fusion": {"exact_match": 0.21322436849925705, "vqa_style": 0.25564635958395227, "questions": 2692}}}, "temperatures": {"text": 1.455690622329712, "fusion": 1.2839508056640625}, "majority_answer": "no", "head_trainable_params": 1562088, "device": "NVIDIA GeForce RTX 4060 Laptop GPU", "python": "3.11.0rc2", "torch": "2.9.0+cu128", "metric_note": "VQA-style 10-annotator agreement with short-answer normalization; official Test-Dev score requires EvalAI."}, "samples": [{"question_id": 315128000, "image_id": 315128, "image": "val2014/COCO_val2014_000000315128.jpg", "question": "Is the fire hydrant red?", "answer": "no", "answer_type": "yes/no", "label_id": 1, "models": {"text": {"answer": "no", "confidence": 0.6414, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "no", "confidence": 0.9497, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000315128.jpg"}, {"question_id": 217827002, "image_id": 217827, "image": "val2014/COCO_val2014_000000217827.jpg", "question": "Is the man in blue Rafael Nadal?", "answer": "no", "answer_type": "yes/no", "label_id": 1, "models": {"text": {"answer": "yes", "confidence": 0.4665, "exact_match": false, "vqa_style": 0.3}, "fusion": {"answer": "no", "confidence": 0.9214, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000217827.jpg"}, {"question_id": 514598006, "image_id": 514598, "image": "val2014/COCO_val2014_000000514598.jpg", "question": "Is she throwing a frisbee?", "answer": "no", "answer_type": "yes/no", "label_id": 1, "models": {"text": {"answer": "no", "confidence": 0.6425, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "no", "confidence": 0.9179, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000514598.jpg"}, {"question_id": 558073004, "image_id": 558073, "image": "val2014/COCO_val2014_000000558073.jpg", "question": "Does the shower curtain have a patterned design?", "answer": "yes", "answer_type": "yes/no", "label_id": 0, "models": {"text": {"answer": "no", "confidence": 0.7833, "exact_match": false, "vqa_style": 0.3}, "fusion": {"answer": "no", "confidence": 0.9113, "exact_match": false, "vqa_style": 0.3}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000558073.jpg"}, {"question_id": 160195001, "image_id": 160195, "image": "val2014/COCO_val2014_000000160195.jpg", "question": "Are they both wearing white shirts?", "answer": "yes", "answer_type": "yes/no", "label_id": 0, "models": {"text": {"answer": "no", "confidence": 0.7775, "exact_match": false, "vqa_style": 0.0}, "fusion": {"answer": "no", "confidence": 0.8853, "exact_match": false, "vqa_style": 0.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000160195.jpg"}, {"question_id": 429836005, "image_id": 429836, "image": "val2014/COCO_val2014_000000429836.jpg", "question": "Are the stands filled?", "answer": "no", "answer_type": "yes/no", "label_id": 1, "models": {"text": {"answer": "no", "confidence": 0.5415, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "yes", "confidence": 0.8754, "exact_match": false, "vqa_style": 0.3}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000429836.jpg"}, {"question_id": 324740001, "image_id": 324740, "image": "val2014/COCO_val2014_000000324740.jpg", "question": "How many bears?", "answer": "1", "answer_type": "number", "label_id": 2, "models": {"text": {"answer": "1", "confidence": 0.6039, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "1", "confidence": 0.8716, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000324740.jpg"}, {"question_id": 573223000, "image_id": 573223, "image": "val2014/COCO_val2014_000000573223.jpg", "question": "How many bead necklaces is the girl wearing?", "answer": "0", "answer_type": "number", "label_id": 9, "models": {"text": {"answer": "3", "confidence": 0.2309, "exact_match": false, "vqa_style": 0.0}, "fusion": {"answer": "0", "confidence": 0.8498, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000573223.jpg"}, {"question_id": 119581001, "image_id": 119581, "image": "val2014/COCO_val2014_000000119581.jpg", "question": "How many animals are on the bed?", "answer": "1", "answer_type": "number", "label_id": 2, "models": {"text": {"answer": "1", "confidence": 0.457, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "1", "confidence": 0.7723, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000119581.jpg"}, {"question_id": 66179004, "image_id": 66179, "image": "val2014/COCO_val2014_000000066179.jpg", "question": "How many babies are there?", "answer": "0", "answer_type": "number", "label_id": 9, "models": {"text": {"answer": "1", "confidence": 0.6271, "exact_match": false, "vqa_style": 0.3}, "fusion": {"answer": "1", "confidence": 0.8963, "exact_match": false, "vqa_style": 0.3}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000066179.jpg"}, {"question_id": 305677004, "image_id": 305677, "image": "val2014/COCO_val2014_000000305677.jpg", "question": "How many fins are on the surfboard?", "answer": "1", "answer_type": "number", "label_id": 2, "models": {"text": {"answer": "0", "confidence": 0.23, "exact_match": false, "vqa_style": 0.9}, "fusion": {"answer": "0", "confidence": 0.8593, "exact_match": false, "vqa_style": 0.9}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000305677.jpg"}, {"question_id": 566026005, "image_id": 566026, "image": "val2014/COCO_val2014_000000566026.jpg", "question": "How many traffic lights are there?", "answer": "3", "answer_type": "number", "label_id": 5, "models": {"text": {"answer": "2", "confidence": 0.433, "exact_match": false, "vqa_style": 0.3}, "fusion": {"answer": "2", "confidence": 0.8134, "exact_match": false, "vqa_style": 0.3}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000566026.jpg"}, {"question_id": 33005000, "image_id": 33005, "image": "val2014/COCO_val2014_000000033005.jpg", "question": "What sport is this?", "answer": "tennis", "answer_type": "other", "label_id": 22, "models": {"text": {"answer": "tennis", "confidence": 0.2813, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "tennis", "confidence": 0.9776, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000033005.jpg"}, {"question_id": 90572002, "image_id": 90572, "image": "val2014/COCO_val2014_000000090572.jpg", "question": "What sport are the girls playing?", "answer": "tennis", "answer_type": "other", "label_id": 22, "models": {"text": {"answer": "tennis", "confidence": 0.4261, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "tennis", "confidence": 0.9687, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000090572.jpg"}, {"question_id": 224358001, "image_id": 224358, "image": "val2014/COCO_val2014_000000224358.jpg", "question": "What sport is being played?", "answer": "tennis", "answer_type": "other", "label_id": 22, "models": {"text": {"answer": "tennis", "confidence": 0.4266, "exact_match": true, "vqa_style": 1.0}, "fusion": {"answer": "tennis", "confidence": 0.9534, "exact_match": true, "vqa_style": 1.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000224358.jpg"}, {"question_id": 34141006, "image_id": 34141, "image": "val2014/COCO_val2014_000000034141.jpg", "question": "What color is grass?", "answer": "brown", "answer_type": "other", "label_id": 11, "models": {"text": {"answer": "green", "confidence": 0.3763, "exact_match": false, "vqa_style": 0.0}, "fusion": {"answer": "green", "confidence": 0.8649, "exact_match": false, "vqa_style": 0.0}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000034141.jpg"}, {"question_id": 560993001, "image_id": 560993, "image": "val2014/COCO_val2014_000000560993.jpg", "question": "What game are they playing?", "answer": "boxing", "answer_type": "other", "label_id": 992, "models": {"text": {"answer": "wii", "confidence": 0.2743, "exact_match": false, "vqa_style": 0.9}, "fusion": {"answer": "wii", "confidence": 0.8481, "exact_match": false, "vqa_style": 0.9}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000560993.jpg"}, {"question_id": 56891002, "image_id": 56891, "image": "val2014/COCO_val2014_000000056891.jpg", "question": "What color is the sky?", "answer": "gray", "answer_type": "other", "label_id": 15, "models": {"text": {"answer": "blue", "confidence": 0.5474, "exact_match": false, "vqa_style": 0.6}, "fusion": {"answer": "blue", "confidence": 0.8148, "exact_match": false, "vqa_style": 0.6}}, "image_url": "http://images.cocodataset.org/val2014/COCO_val2014_000000056891.jpg"}]};
+    const {summary, samples} = DATA;
+    const pct = n => `${(n * 100).toFixed(1)}%`;
+    const metric = (value,label) => {
+      const box=document.createElement('div'); box.className='metric';
+      const v=document.createElement('div'); v.className='value'; v.textContent=value;
+      const l=document.createElement('div'); l.className='label'; l.textContent=label;
+      box.append(v,l); return box;
+    };
+    const scores=summary.scores;
+    document.getElementById('metrics').append(
+      metric(summary.train_questions.toLocaleString(),'训练问题'),
+      metric(summary.dev_all_questions.toLocaleString(),'开发问题 · 未过滤'),
+      metric(pct(summary.dev_vocab_coverage),'开发集答案词表覆盖'),
+      metric(pct(scores[summary.selected_model].unfiltered_dev.exact_match),'选中模型 · 未过滤 Exact Match')
+    );
+    const compare=document.getElementById('comparison');
+    for (const mode of ['text','fusion']) {
+      const item=document.createElement('article');
+      const title=document.createElement('b'); title.textContent=mode==='fusion'?'图文融合':'仅文本';
+      const value=document.createElement('strong'); value.textContent=pct(scores[mode].filtered_dev.exact_match);
+      const info=document.createElement('span');
+      info.textContent=`词表内 Exact Match · 未过滤 ${pct(scores[mode].unfiltered_dev.exact_match)} · VQA-style ${pct(scores[mode].unfiltered_dev.vqa_style)}`;
+      item.append(title,value,info); compare.append(item);
+    }
+    document.getElementById('model').value=summary.selected_model;
+    function render() {
+      const model=document.getElementById('model').value;
+      const type=document.getElementById('type').value;
+      const correct=document.getElementById('correct').value;
+      const chosen=samples.filter(s => (type==='all'||s.answer_type===type) &&
+        (correct==='all'||String(s.models[model].exact_match)===correct));
+      document.getElementById('count').textContent=`显示 ${chosen.length} / ${samples.length} 个案例`;
+      const gallery=document.getElementById('gallery'); gallery.replaceChildren();
+      for (const s of chosen) {
+        const card=document.createElement('article'); card.className='card';
+        const img=document.createElement('img'); img.src=s.image_url; img.alt=`COCO 图片 ${s.image_id}`; img.loading='lazy';
+        const body=document.createElement('div'); body.className='body';
+        const tags=document.createElement('div'); tags.className='tags';
+        const typeTag=document.createElement('span'); typeTag.className='tag'; typeTag.textContent=s.answer_type;
+        const status=document.createElement('b'); status.className=s.models[model].exact_match?'good':'bad';
+        status.textContent=s.models[model].exact_match?'答对':'答错'; tags.append(typeTag,status);
+        const question=document.createElement('p'); question.className='question'; question.textContent=s.question;
+        const answer=document.createElement('p'); answer.className='answer';
+        answer.textContent=`答案：${s.models[model].answer}`;
+        const confidence=document.createElement('p'); confidence.className='minor';
+        confidence.textContent=`校准后分数 ${pct(s.models[model].confidence)} · 人工主要答案 ${s.answer}`;
+        const source=document.createElement('a'); source.className='source'; source.href=s.image_url;
+        source.target='_blank'; source.rel='noopener noreferrer'; source.textContent='查看 COCO 原图 ↗';
+        body.append(tags,question,answer,confidence,source); card.append(img,body); gallery.append(card);
+      }
+    }
+    for (const id of ['model','type','correct']) document.getElementById(id).addEventListener('change',render);
+    render();
+  </script>
+</body>
+</html>
