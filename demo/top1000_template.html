@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VQA Top-1000 · 图文问答实验</title>
+  <style>
+    :root { color-scheme: light; --ink:#162333; --muted:#56657b; --line:#dbe3eb; --blue:#164e9d; --paper:#f4f7fb; --green:#116b50; --red:#a43a3a; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+    a { color:var(--blue); }
+    .wrap { max-width:1180px; margin:auto; padding:24px 22px 64px; }
+    header { background:linear-gradient(115deg,#142c50,#185388); color:#fff; }
+    header .wrap { padding-top:52px; padding-bottom:48px; }
+    .eyebrow { margin:0 0 10px; color:#bcd5f4; font-size:13px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { font-size:clamp(32px,5vw,52px); line-height:1.1; margin:0 0 14px; }
+    header p { max-width:760px; margin:0; color:#deebf8; }
+    h2 { margin:36px 0 14px; font-size:25px; }
+    .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-top:-27px; }
+    .metric,.panel,.card { background:white; border:1px solid var(--line); border-radius:15px; box-shadow:0 4px 22px rgba(31,55,84,.055); }
+    .metric { padding:18px 20px; }
+    .metric .value { font-size:27px; font-weight:750; line-height:1.15; }
+    .metric .label { color:var(--muted); font-size:13px; margin-top:5px; }
+    .note { margin:18px 0; color:var(--muted); font-size:14px; }
+    .panel { padding:20px; }
+    .comparison { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; }
+    .comparison article { padding:16px; background:#f7f9fc; border-radius:11px; }
+    .comparison strong { display:block; font-size:23px; }
+    .comparison span { color:var(--muted); font-size:13px; }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin:16px 0 18px; }
+    .controls label { display:grid; gap:4px; font-size:13px; font-weight:650; }
+    select { border:1px solid #bac8d8; border-radius:8px; background:#fff; padding:9px 30px 9px 10px; font:inherit; color:var(--ink); }
+    .count { margin-left:auto; color:var(--muted); font-size:14px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(255px,1fr)); gap:16px; }
+    .card { overflow:hidden; }
+    .card img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#e8edf3; }
+    .body { padding:16px; }
+    .tags { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .tag { display:inline-block; font-size:12px; font-weight:700; padding:3px 8px; background:#e7eef8; border-radius:99px; }
+    .good { color:var(--green); } .bad { color:var(--red); }
+    .question { font-size:17px; font-weight:680; min-height:54px; margin:12px 0; }
+    .answer { font-size:18px; font-weight:750; margin:0; }
+    .minor { color:var(--muted); font-size:13px; margin:6px 0 0; }
+    .source { display:inline-block; margin-top:10px; font-size:13px; }
+    footer { margin-top:34px; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <p class="eyebrow">VQA v2 / Top-1000 answers</p>
+    <h1>看图，回答问题</h1>
+    <p>冻结 CLIP 特征与小型分类头的真实开发集实验。输入为图片与英文问题，输出为短答案及校准后的模型分数。以下为预计算案例。</p>
+  </div></header>
+  <main class="wrap">
+    <section class="metrics" id="metrics" aria-label="实验规模和结果"></section>
+    <p class="note">开发集来自官方 val，按图片与训练集隔离。词表内成绩仅针对经过答案过滤的高频答案题；本页数据不是官方 Test-Dev 成绩。图片从 COCO 官方服务器加载，需要网络。</p>
+    <h2>模型对照</h2>
+    <section class="panel comparison" id="comparison"></section>
+    <h2>图文问答案例</h2>
+    <section class="controls" aria-label="案例筛选">
+      <label>模型<select id="model"><option value="fusion">图文融合</option><option value="text">仅文本</option></select></label>
+      <label>答案类型<select id="type"><option value="all">全部类型</option><option value="yes/no">是非</option><option value="number">数量</option><option value="other">其他</option></select></label>
+      <label>预测结果<select id="correct"><option value="all">全部</option><option value="true">正确</option><option value="false">错误</option></select></label>
+      <span class="count" id="count"></span>
+    </section>
+    <section class="grid" id="gallery" aria-live="polite"></section>
+    <footer>来源：<a href="https://visualqa.org/">VQA v2</a> · <a href="https://cocodataset.org/">COCO 2014</a> · <a href="https://github.com/openai/CLIP">OpenAI CLIP</a>。图片版权归各原上传者。</footer>
+  </main>
+  <script>
+    const DATA = __VQA_DATA__;
+    const {summary, samples} = DATA;
+    const pct = n => `${(n * 100).toFixed(1)}%`;
+    const metric = (value,label) => {
+      const box=document.createElement('div'); box.className='metric';
+      const v=document.createElement('div'); v.className='value'; v.textContent=value;
+      const l=document.createElement('div'); l.className='label'; l.textContent=label;
+      box.append(v,l); return box;
+    };
+    const scores=summary.scores;
+    document.getElementById('metrics').append(
+      metric(summary.train_questions.toLocaleString(),'训练问题'),
+      metric(summary.dev_all_questions.toLocaleString(),'开发问题 · 未过滤'),
+      metric(pct(summary.dev_vocab_coverage),'开发集答案词表覆盖'),
+      metric(pct(scores[summary.selected_model].unfiltered_dev.exact_match),'选中模型 · 未过滤 Exact Match')
+    );
+    const compare=document.getElementById('comparison');
+    for (const mode of ['text','fusion']) {
+      const item=document.createElement('article');
+      const title=document.createElement('b'); title.textContent=mode==='fusion'?'图文融合':'仅文本';
+      const value=document.createElement('strong'); value.textContent=pct(scores[mode].filtered_dev.exact_match);
+      const info=document.createElement('span');
+      info.textContent=`词表内 Exact Match · 未过滤 ${pct(scores[mode].unfiltered_dev.exact_match)} · VQA-style ${pct(scores[mode].unfiltered_dev.vqa_style)}`;
+      item.append(title,value,info); compare.append(item);
+    }
+    document.getElementById('model').value=summary.selected_model;
+    function render() {
+      const model=document.getElementById('model').value;
+      const type=document.getElementById('type').value;
+      const correct=document.getElementById('correct').value;
+      const chosen=samples.filter(s => (type==='all'||s.answer_type===type) &&
+        (correct==='all'||String(s.models[model].exact_match)===correct));
+      document.getElementById('count').textContent=`显示 ${chosen.length} / ${samples.length} 个案例`;
+      const gallery=document.getElementById('gallery'); gallery.replaceChildren();
+      for (const s of chosen) {
+        const card=document.createElement('article'); card.className='card';
+        const img=document.createElement('img'); img.src=s.image_url; img.alt=`COCO 图片 ${s.image_id}`; img.loading='lazy';
+        const body=document.createElement('div'); body.className='body';
+        const tags=document.createElement('div'); tags.className='tags';
+        const typeTag=document.createElement('span'); typeTag.className='tag'; typeTag.textContent=s.answer_type;
+        const status=document.createElement('b'); status.className=s.models[model].exact_match?'good':'bad';
+        status.textContent=s.models[model].exact_match?'答对':'答错'; tags.append(typeTag,status);
+        const question=document.createElement('p'); question.className='question'; question.textContent=s.question;
+        const answer=document.createElement('p'); answer.className='answer';
+        answer.textContent=`答案：${s.models[model].answer}`;
+        const confidence=document.createElement('p'); confidence.className='minor';
+        confidence.textContent=`校准后分数 ${pct(s.models[model].confidence)} · 人工主要答案 ${s.answer}`;
+        const source=document.createElement('a'); source.className='source'; source.href=s.image_url;
+        source.target='_blank'; source.rel='noopener noreferrer'; source.textContent='查看 COCO 原图 ↗';
+        body.append(tags,question,answer,confidence,source); card.append(img,body); gallery.append(card);
+      }
+    }
+    for (const id of ['model','type','correct']) document.getElementById(id).addEventListener('change',render);
+    render();
+  </script>
+</body>
+</html>

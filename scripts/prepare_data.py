@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import re
 import time
@@ -21,11 +22,12 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RAW = ROOT / "data" / "raw"
-IMAGES = ROOT / "data" / "images"
-MANIFEST = ROOT / "data" / "manifest.json"
-TOP1000_MANIFEST = ROOT / "data" / "manifest_top1000.json"
-TOP1000_DEV_MANIFEST = ROOT / "data" / "manifest_top1000_dev.json"
+DATA = Path(os.environ.get("VQA_DATA_ROOT", ROOT / "data")).expanduser().resolve()
+RAW = DATA / "raw"
+IMAGES = DATA / "images"
+MANIFEST = DATA / "manifest.json"
+TOP1000_MANIFEST = DATA / "manifest_top1000.json"
+TOP1000_DEV_MANIFEST = DATA / "manifest_top1000_dev.json"
 FAMILIES = ("yes/no", "count", "color", "animal")
 VOCAB_SIZES = {"yes/no": 2, "count": 11, "color": 12, "animal": 10}
 DEFAULT_SEED = 42

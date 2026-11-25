@@ -1,0 +1,121 @@
+{
+  "task": "VQA v2 Top-1000 answer classification, development set only",
+  "seed": 42,
+  "epochs": 16,
+  "selected_model": "fusion",
+  "train_images": 2000,
+  "train_questions": 12400,
+  "dev_images": 800,
+  "dev_filtered_questions": 4960,
+  "dev_all_questions": 5547,
+  "dev_vocab_coverage": 0.8941770326302506,
+  "train_observed_answers": 829,
+  "dev_unseen_class_questions": 81,
+  "selection_images": 600,
+  "calibration_images": 200,
+  "best_epoch": {
+    "text": 15,
+    "fusion": 11
+  },
+  "scores": {
+    "text": {
+      "selection": {
+        "exact_match": 0.3412207582683517,
+        "vqa_style": 0.42285560634578967,
+        "questions": 3719
+      },
+      "calibration": {
+        "exact_match": 0.33521353746978244,
+        "vqa_style": 0.4199033037872689,
+        "questions": 1241
+      },
+      "filtered_dev": {
+        "exact_match": 0.3397177419354839,
+        "vqa_style": 0.4221169354838685,
+        "questions": 4960
+      },
+      "unfiltered_dev": {
+        "exact_match": 0.3037678024157202,
+        "vqa_style": 0.38107084910762357,
+        "questions": 5547
+      }
+    },
+    "fusion": {
+      "selection": {
+        "exact_match": 0.3944608765797257,
+        "vqa_style": 0.47133638074751066,
+        "questions": 3719
+      },
+      "calibration": {
+        "exact_match": 0.38033843674456086,
+        "vqa_style": 0.4702659145850122,
+        "questions": 1241
+      },
+      "filtered_dev": {
+        "exact_match": 0.3909274193548387,
+        "vqa_style": 0.4710685483870952,
+        "questions": 4960
+      },
+      "unfiltered_dev": {
+        "exact_match": 0.3495583198125113,
+        "vqa_style": 0.4252929511447616,
+        "questions": 5547
+      }
+    },
+    "majority": {
+      "unfiltered_dev": {
+        "exact_match": 0.1905534523165675,
+        "vqa_style": 0.24835045970794917,
+        "questions": 5547
+      }
+    }
+  },
+  "by_answer_type": {
+    "yes/no": {
+      "text": {
+        "exact_match": 0.5184287099903007,
+        "vqa_style": 0.6552376333656621,
+        "questions": 2062
+      },
+      "fusion": {
+        "exact_match": 0.5708050436469447,
+        "vqa_style": 0.6975751697381156,
+        "questions": 2062
+      }
+    },
+    "number": {
+      "text": {
+        "exact_match": 0.23707440100882723,
+        "vqa_style": 0.2891551071878941,
+        "questions": 793
+      },
+      "fusion": {
+        "exact_match": 0.23707440100882723,
+        "vqa_style": 0.29319041614123587,
+        "questions": 793
+      }
+    },
+    "other": {
+      "text": {
+        "exact_match": 0.1589895988112927,
+        "vqa_style": 0.19814264487370026,
+        "questions": 2692
+      },
+      "fusion": {
+        "exact_match": 0.21322436849925705,
+        "vqa_style": 0.25564635958395227,
+        "questions": 2692
+      }
+    }
+  },
+  "temperatures": {
+    "text": 1.455690622329712,
+    "fusion": 1.2839508056640625
+  },
+  "majority_answer": "no",
+  "head_trainable_params": 1562088,
+  "device": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "python": "3.11.0rc2",
+  "torch": "2.9.0+cu128",
+  "metric_note": "VQA-style 10-annotator agreement with short-answer normalization; official Test-Dev score requires EvalAI."
+}

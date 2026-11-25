@@ -58,6 +58,7 @@ def parse_cells(source: str) -> list[dict]:
 
 
 def write_notebook(notebook: dict) -> None:
+    TARGET.parent.mkdir(parents=True, exist_ok=True)
     TARGET.write_text(json.dumps(notebook, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
@@ -102,7 +103,8 @@ def execute(notebook: dict) -> None:
         if err.getvalue():
             cell["outputs"].append({"output_type": "stream", "name": "stderr",
                                     "text": err.getvalue()})
-        for filename in ("data_distribution.png", "training_curves.png"):
+        for filename in ("data_distribution.png", "training_curves.png",
+                         "top1000_training_curves.png", "top1000_by_type.png"):
             if f'"{filename}"' in cell["source"]:
                 image_path = ROOT / "results" / filename
                 if image_path.is_file():
@@ -115,7 +117,13 @@ def execute(notebook: dict) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--source", type=Path, default=SOURCE,
+                        help="Cell-marked Python source (default: historical pilot)")
+    parser.add_argument("--output", type=Path, default=TARGET,
+                        help="Notebook path (default: historical pilot)")
     args = parser.parse_args()
+    SOURCE = args.source.resolve()
+    TARGET = args.output.resolve()
     notebook = {"cells": parse_cells(SOURCE.read_text(encoding="utf-8")),
                 "metadata": {"kernelspec": {"display_name": "Python 3",
                                              "language": "python", "name": "python3"},

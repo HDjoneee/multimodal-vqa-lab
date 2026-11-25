@@ -5,6 +5,8 @@ data/manifest.json
 data/manifest_top1000.json
 data/manifest_top1000_dev.json
 results/features_*.pt
+results/top1000_features_*.pt
+results/top1000_head.pt
 results/finetuned_layers.pt
 vendor/python/
 vendor/CLIP-main/
