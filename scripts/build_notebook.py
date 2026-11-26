@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "scripts" / "experiment_source.py"
-TARGET = ROOT / "notebooks" / "v1-3200-4.ipynb"
+TARGET = ROOT / "notebooks" / "v1-3200-4-pilot.ipynb"
 IMAGES = ("data_distribution.png", "training_curves.png",
           "top1000_training_curves.png", "top1000_by_type.png",
           "three_way_training_curves.png", "three_way_by_type.png")
