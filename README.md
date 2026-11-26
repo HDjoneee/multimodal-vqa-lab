@@ -1,6 +1,6 @@
 # VQA v2 图文视觉问答课程实验
 
-当前版本在同伴整理的 Top‑1,000 数据集上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/v3-20989-2-main.ipynb) 和 [HTML 问答案例](demo/top1000.html)。三组对齐对照见 [三组 Notebook](notebooks/v3-20989-3-aligned.ipynb)。历史四题型的 [实验 Notebook](notebooks/v1-3200-4-pilot.ipynb) 和 [网页演示](demo/demo.html) 也保留。
+当前版本在自建的 Top‑1,000 闭集数据上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/v3-20989-2-main.ipynb) 和 [HTML 问答案例](demo/top1000.html)。三组对齐对照见 [三组 Notebook](notebooks/v3-20989-3-aligned.ipynb)。主结果基于 **20,989 条**训练 QA；12,400 条与 3,200 条四题型两个规模作为历史对照保留，跨规模不能比绝对分数，原因见 [notebooks/README.md](notebooks/README.md)。
 
 Notebook 按 `v<阶段>-<训练 QA 数>-<对照组数>-<实验类型>.ipynb` 命名，三个阶段的规模与成绩对照见 [notebooks/README.md](notebooks/README.md)。原始数据、模型权重和图片存放在本地。
 
@@ -8,10 +8,11 @@ Notebook 按 `v<阶段>-<训练 QA 数>-<对照组数>-<实验类型>.ipynb` 命
 
 | 目录 | 内容 |
 | --- | --- |
-| `scripts/` | 数据下载和预处理、实验源码、Notebook 与演示生成脚本 |
+| `scripts/` | 数据下载和预处理、实验源码、Notebook 与演示生成脚本、数据自检与显著性检验 |
 | `notebooks/` | 各数据规模的实验 Notebook，命名见该目录 README |
 | `demo/` | HTML 演示和模板 |
 | `results/` | 预测、指标和图表 |
+| `docs/` | [参考文献清单与 BibTeX](docs/related_work.md)、[待办事项](docs/TODO.md) |
 | `data/`、`vendor/` | 本地数据、模型权重与第三方实现，按需生成 |
 
 ## 数据与模型
@@ -19,6 +20,22 @@ Notebook 按 `v<阶段>-<训练 QA 数>-<对照组数>-<实验类型>.ipynb` 命
 - 问题、人工答案： [VQA v2 官方下载页](https://visualqa.org/download)，使用 real images 的 train/val 标注和问题文件。
 - 图片： [COCO 2014](https://cocodataset.org/)，只下载清单中引用的图片。COCO [使用条款](https://cocodataset.org/dataset/termsofuse.htm)说明图片版权属于原上传者；本仓库的 HTML 引用官方图片地址，不附带图片副本。
 - 预训练模型与分词实现： [OpenAI CLIP](https://github.com/openai/CLIP)，ViT-B/32。权重 SHA256 在代码中验证；运行 `scripts/download_sources.py` 后第三方实现会位于 `vendor/CLIP-main`，并保留原许可。
+
+## 数据冻结与自检
+
+三份清单在实验结果定稿后冻结，不再改动。`scripts/verify_data.py` 复算全部统计并比对 sha256，任何一项不一致就退出并报错：
+
+```powershell
+python scripts/verify_data.py
+```
+
+| 清单 | QA 数 | 图片数 | sha256 前 16 位 |
+| --- | ---: | ---: | --- |
+| `data/manifest_top1000.json`（train） | 20,989 | 2,000 | `5836493a7ee85bd2` |
+| `data/manifest_top1000_dev.json`（dev） | 8,083 | 800 | `cb7c523f9ee3843a` |
+| `data/manifest_top1000_test.json`（test） | 8,072 | 800 | `caf699f84ce7abbd` |
+
+测试清单不入库，用 `python scripts/prepare_data.py --sampling top1000-test` 重新生成即可复现同一份（种子 42 固定）。
 
 ## Top‑1,000 扩容数据集
 
@@ -78,7 +95,7 @@ Notebook 同时报告词表内与未过滤开发题的 Exact Match，并依据 1
 
 1. 改进图片抽样，让训练集覆盖更多 Top-1,000 类，并在未按答案频次筛选的新开发图片或官方 Test-Dev 上评价。扩展为官方测试时使用官方评测工具。
 2. 重点检查数量和其他类的错误。尝试让问题关注 CLIP 的局部图像特征，和当前全局向量分类头在同一数据划分上比较。
-3. 使用多个随机种子和按图片重采样的配对置信区间，再判断 4.6 个百分点的差异是否稳定。若要回答用户上传的任意图片和问题，需增加推理服务并对词表外问题给出明确提示。
+3. 用 `scripts/significance_test.py` 的配对检验复核 5.7 个百分点的图像增益，再补跑其他随机种子确认排序稳定。若要回答用户上传的任意图片和问题，需增加推理服务并对词表外问题给出明确提示。
 
 ## 三组对齐对照实验
 
@@ -136,6 +153,16 @@ python scripts/three_way_experiment_source.py
 微调组原本每轮要重复解码约两万次 JPEG 并重算 12 个 Transformer block，单轮耗时 571 秒。由于只有最后一个 block、`ln_post` 与 `proj` 参与更新，前 11 个 block 的输出在每轮上完全相同，`build_trunk_cache` 把它们预计算并缓存，训练时每批只剩一个 block 的前向与反向。拆分前向与整模型前向的最大绝对误差为 `0.00e+00`，单轮降到 23 秒。
 
 两类误差仍然明显：数量题 29.9%、其他类 22.2%，都远低于是非题的 60.7%。其他类占开发题的 49.0%，是拉低总体分数的主因。HTML 展示 21 个真实开发集案例，其中包含"仅文本答对但图文融合答错"的题，用于说明图像输入并非在所有问题上都有帮助。
+
+### 差异显著性
+
+`scripts/significance_test.py` 读取 `results/three_way_predictions.json`，对三组两两做配对检验：
+
+```powershell
+python scripts/significance_test.py
+```
+
+同时给出 McNemar 检验（只看两组判断不一致的题）与按图片整块重采样的 bootstrap 95% 置信区间（同一张图的多道题不独立，逐题重采样会低估方差）。结果写入 `results/significance.json`。
 
 ## 历史四题型实验
 
