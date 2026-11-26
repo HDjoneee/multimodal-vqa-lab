@@ -1,6 +1,6 @@
 # VQA v2 图文视觉问答课程实验
 
-当前版本在同伴整理的 Top‑1,000 数据集上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/VQA_Top1000.ipynb) 和 [HTML 问答案例](demo/top1000.html)。历史四题型的 [实验 Notebook](notebooks/VQA实验.ipynb) 和 [网页演示](demo/demo.html)也保留。原始数据、模型权重和图片存放在本地。
+当前版本在同伴整理的 Top‑1,000 数据集上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/VQA_Top1000.ipynb) 和 [HTML 问答案例](demo/top1000.html)。历史四题型的 [实验 Notebook](notebooks/VQA实验.ipynb) 和 [网页演示](demo/demo.html)也保留。三个数据集规模的 Notebook 存档在 [notebooks/history/](notebooks/history/)，各版本的训练规模与成绩对照见该目录的 README。原始数据、模型权重和图片存放在本地。
 
 ## 目录结构
 

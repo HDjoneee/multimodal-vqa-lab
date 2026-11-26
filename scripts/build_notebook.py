@@ -21,6 +21,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "scripts" / "experiment_source.py"
 TARGET = ROOT / "notebooks" / "VQA实验.ipynb"
+IMAGES = ("data_distribution.png", "training_curves.png",
+          "top1000_training_curves.png", "top1000_by_type.png",
+          "three_way_training_curves.png", "three_way_by_type.png")
 
 
 def parse_cells(source: str) -> list[dict]:
@@ -55,6 +58,37 @@ def parse_cells(source: str) -> list[dict]:
             lines.append(line)
     append()
     return cells
+
+
+def attach_images(notebook: dict) -> None:
+    """Embed plots already sitting in results/ into the cells that reference them."""
+    for cell in notebook["cells"]:
+        if cell["cell_type"] != "code":
+            continue
+        if any(output.get("output_type") == "display_data" for output in cell["outputs"]):
+            continue
+        for filename in IMAGES:
+            if f'"{filename}"' not in cell["source"]:
+                continue
+            image_path = ROOT / "results" / filename
+            if image_path.is_file():
+                encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+                cell["outputs"].append({"output_type": "display_data", "metadata": {},
+                                        "data": {"image/png": encoded}})
+
+
+def attach_log(notebook: dict, path: Path, title: str) -> None:
+    """Append a captured run log as a fenced markdown cell, so the numbers stay readable."""
+    text = path.read_text(encoding="utf-8").strip()
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return
+    notebook["cells"].append({
+        "cell_type": "markdown",
+        "id": hashlib.sha1(text.encode("utf-8")).hexdigest()[:12],
+        "metadata": {},
+        "source": f"## {title}\n\n```text\n" + "\n".join(lines) + "\n```\n",
+    })
 
 
 def write_notebook(notebook: dict) -> None:
@@ -103,9 +137,7 @@ def execute(notebook: dict) -> None:
         if err.getvalue():
             cell["outputs"].append({"output_type": "stream", "name": "stderr",
                                     "text": err.getvalue()})
-        for filename in ("data_distribution.png", "training_curves.png",
-                         "top1000_training_curves.png", "top1000_by_type.png",
-                         "three_way_training_curves.png", "three_way_by_type.png"):
+        for filename in IMAGES:
             if f'"{filename}"' in cell["source"]:
                 image_path = ROOT / "results" / filename
                 if image_path.is_file():
@@ -122,6 +154,10 @@ if __name__ == "__main__":
                         help="Cell-marked Python source (default: historical pilot)")
     parser.add_argument("--output", type=Path, default=TARGET,
                         help="Notebook path (default: historical pilot)")
+    parser.add_argument("--attach-log", type=Path, default=None,
+                        help="Append this run log to the notebook as a markdown cell")
+    parser.add_argument("--log-title", default="运行日志",
+                        help="Heading for the appended log cell")
     args = parser.parse_args()
     SOURCE = args.source.resolve()
     TARGET = args.output.resolve()
@@ -130,7 +166,11 @@ if __name__ == "__main__":
                                              "language": "python", "name": "python3"},
                              "language_info": {"name": "python"}},
                 "nbformat": 4, "nbformat_minor": 5}
-    write_notebook(notebook)
     if args.execute:
         execute(notebook)
+    else:
+        attach_images(notebook)
+    if args.attach_log:
+        attach_log(notebook, args.attach_log.resolve(), args.log_title)
+    write_notebook(notebook)
     print(TARGET)
