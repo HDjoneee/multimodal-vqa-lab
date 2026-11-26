@@ -1,13 +1,15 @@
 # VQA v2 图文视觉问答课程实验
 
-当前版本在同伴整理的 Top‑1,000 数据集上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/VQA_Top1000.ipynb) 和 [HTML 问答案例](demo/top1000.html)。历史四题型的 [实验 Notebook](notebooks/VQA实验.ipynb) 和 [网页演示](demo/demo.html)也保留。三个数据集规模的 Notebook 存档在 [notebooks/history/](notebooks/history/)，各版本的训练规模与成绩对照见该目录的 README。原始数据、模型权重和图片存放在本地。
+当前版本在同伴整理的 Top‑1,000 数据集上实际训练了仅文本与冻结 CLIP 图文模型，提供 [已运行的 Top‑1,000 Notebook](notebooks/v3-20989-2.ipynb) 和 [HTML 问答案例](demo/top1000.html)。三组对齐对照见 [三组 Notebook](notebooks/v3-20989-3.ipynb)。历史四题型的 [实验 Notebook](notebooks/v1-3200-4.ipynb) 和 [网页演示](demo/demo.html) 也保留。
+
+Notebook 按 `v<阶段>-<训练 QA 数>-<对照组数>.ipynb` 命名，三个阶段的规模与成绩对照见 [notebooks/README.md](notebooks/README.md)。原始数据、模型权重和图片存放在本地。
 
 ## 目录结构
 
 | 目录 | 内容 |
 | --- | --- |
 | `scripts/` | 数据下载和预处理、实验源码、Notebook 与演示生成脚本 |
-| `notebooks/` | 实验 Notebook |
+| `notebooks/` | 各数据规模的实验 Notebook，命名见该目录 README |
 | `demo/` | HTML 演示和模板 |
 | `results/` | 预测、指标和图表 |
 | `data/`、`vendor/` | 本地数据、模型权重与第三方实现，按需生成 |
@@ -34,7 +36,7 @@ python scripts/download_sources.py
 python scripts/prepare_data.py --sampling top1000 --download-images
 python scripts/prepare_data.py --sampling top1000-dev --download-images
 python scripts/prepare_data.py --sampling top1000-test --download-images
-python scripts/build_notebook.py --source scripts/top1000_experiment_source.py --output notebooks/VQA_Top1000.ipynb --execute
+python scripts/build_notebook.py --source scripts/top1000_experiment_source.py --output notebooks/v3-20989-2.ipynb --execute
 python scripts/export_top1000_demo.py
 ```
 
@@ -80,7 +82,7 @@ Notebook 同时报告词表内与未过滤开发题的 Exact Match，并依据 1
 
 ## 三组对齐对照实验
 
-`notebooks/VQA_ThreeWay.ipynb` 在同一份 Top-1,000 数据上对比三种训练方案：
+`notebooks/v3-20989-3.ipynb` 在同一份 Top-1,000 数据上对比三种训练方案：
 
 | 组 | 图像输入 | 视觉编码器 | 分类头 |
 | --- | --- | --- | --- |
@@ -93,7 +95,7 @@ Notebook 同时报告词表内与未过滤开发题的 Exact Match，并依据 1
 这与历史 pilot 的设计不同：历史版本让冻结组与微调组从"已训好的冻结模型"续训 2 轮，轮次与超参不一致，无法干净归因。
 
 ```powershell
-python scripts/build_notebook.py --source scripts/three_way_experiment_source.py --output notebooks/VQA_ThreeWay.ipynb --execute
+python scripts/build_notebook.py --source scripts/three_way_experiment_source.py --output notebooks/v3-20989-3.ipynb --execute
 python scripts/export_three_way_demo.py
 ```
 
@@ -151,7 +153,7 @@ python scripts/build_notebook.py --execute
 python scripts/export_public_demo.py
 ```
 
-`build_notebook.py --execute` 会生成并逐单元执行 `notebooks/VQA实验.ipynb`，保留实际控制台输出和图表，同时生成 `results/summary.json`、`results/predictions.json`、`results/training_curves.png` 和本地离线版 `demo/demo.html`。也可以用 Jupyter 打开 Notebook，从头运行所有单元。最后一步将 HTML 改为公开仓库版，保留相同的真实预测，改从 COCO 官方地址加载图片。直接打开仓库版 HTML 时需要网络。
+`build_notebook.py --execute` 会生成并逐单元执行 `notebooks/v1-3200-4.ipynb`，保留实际控制台输出和图表，同时生成 `results/summary.json`、`results/predictions.json`、`results/training_curves.png` 和本地离线版 `demo/demo.html`。也可以用 Jupyter 打开 Notebook，从头运行所有单元。最后一步将 HTML 改为公开仓库版，保留相同的真实预测，改从 COCO 官方地址加载图片。直接打开仓库版 HTML 时需要网络。
 
 `prepare_data.py` 首次下载约 3700 张 COCO 图片，模型权重约 338 MiB；扩大或缩小 pilot 时修改 Notebook 第一段配置，以及执行 `prepare_data.py` 时的对应参数。图片下载使用 COCO 官方 HTTP 地址，因为本机访问该站 HTTPS 时证书握手失败；这些图片是公开数据，不传输个人信息。
 
