@@ -12,7 +12,7 @@ Notebook 按 `v<阶段>-<训练 QA 数>-<对照组数>-<实验类型>.ipynb` 命
 | `notebooks/` | 各数据规模的实验 Notebook，命名见该目录 README |
 | `demo/` | HTML 演示和模板 |
 | `results/` | 预测、指标和图表 |
-| `docs/` | [参考文献清单与 BibTeX](docs/related_work.md)、[待办事项](docs/TODO.md) |
+| `docs/` | [实验日志](docs/log.md)、[参考文献清单与 BibTeX](docs/related_work.md)、[待办事项](docs/TODO.md) |
 | `data/`、`vendor/` | 本地数据、模型权重与第三方实现，按需生成 |
 
 ## 数据与模型
